@@ -1,0 +1,7 @@
+(lp0
+S"http://kibana.lab321.org/#/discover?_a=(columns:!(_source),index:'logstash-*',interval:auto,query:(query_string:(analyze_wildcard:!t,query:'*')),sort:!('@timestamp',desc))&_g=(refreshInterval:(display:Off,pause:!f,section:0,value:0),time:(from:now-6M,mode:quick,to:now))"
+p1
+aS'Discover - Kibana 4'
+p2
+aI-2
+a.
