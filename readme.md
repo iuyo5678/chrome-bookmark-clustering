@@ -1,14 +1,20 @@
 #聚簇的demo--chrome收藏夹自动分类
-[toc]
+[TOC]
+
 ## 说明
+
 一个聚簇的简单demo，对chrom导出收藏夹进行简单分类。
 仅在linux上进行测试，没有在windows和mac上测试
+
 ## 安装依赖
+
 在文件夹下输入命令：
 ```shell
 pip install -r requirements.txt
 ```
+
 ## 使用
+
 文件下输入下面命令，查看帮助文档：
 ```shell
 python ./cluster.py -h
@@ -38,7 +44,9 @@ python cluster.py -m hierarchical -f ./bookmarks_demo.html -k 15
 ```plain
 chrome://bookmarks/
 ```
- 在打开页面中点击`organize` ---->>> `Export bookmarks to HTML file`
- 如下图：
+在打开页面中点击`organize` ---->>> `Export bookmarks to HTML file`
+
+如下图：
  ![](./screenshot.png) 
- 保存文件后可以将文件路径作为上述命令的书签文件路径即可运行。
+
+保存文件后可以将文件路径作为上述命令的书签文件路径即可运行。
