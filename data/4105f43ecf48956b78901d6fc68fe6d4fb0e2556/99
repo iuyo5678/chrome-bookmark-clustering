@@ -1,9 +1,0 @@
-(lp0
-S'http://api.map.baidu.com/geocoder/v2/?address=%E6%B1%9F%E8%8B%8F%E8%BF%9E%E4%BA%91%E6%B8%AF%E7%91%9E%E9%87%8C%E7%89%B9%E5%BE%8B%E5%B8%88%E4%BA%8B%E5%8A%A1%E6%89%80&output=json&ak=B5cd3e44ad4a4544ba14adba5f66867e&callback=showLocation'
-p1
-aS'\xe5\x9c\xb0\xe5\x9d\x80\xe6\x9f\xa5\xe7\xbb\x8f\xe7\xba\xac\xe5\xba\xa6'
-p2
-aI0
-aVshowLocation&&showLocation({"status":0,"result":{"location":{"lng":119.12606305071961,"lat":34.83029947648783},"precise":1,"confidence":80,"level":"UNKNOWN"}})
-p3
-a.

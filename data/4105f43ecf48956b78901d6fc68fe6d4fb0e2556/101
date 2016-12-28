@@ -1,7 +1,0 @@
-(lp0
-S'http://cq01-nlp-demo.vm.baidu.com:8020/?program=chinese_simp%28global%29&query=%E8%A1%80%E7%AE%A1%E7%96%BE%E7%97%85%E3%80%81%E4%B8%8B%E8%82%A2%E6%BA%83%E7%96%A1%E3%80%81%E4%B8%B9%E6%AF%92%E7%97%9B%E9%A3%8E%E3%80%81%E8%83%86%E7%97%85%E7%AD%89%E7%96%BE%E7%97%85%E7%9A%84%E8%AF%8A%E6%96%AD%E5%8F%8A%E6%B2%BB%E7%96%97%E3%80%82&submit=Run'
-p1
-aS'wordseg-\xe7\x99\xbe\xe5\xba\xa6\xe5\x88\x86\xe8\xaf\x8d\xe7\xb3\xbb\xe7\xbb\x9f'
-p2
-aI-2
-a.

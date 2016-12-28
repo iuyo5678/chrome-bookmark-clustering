@@ -1,9 +1,0 @@
-(lp0
-S'http://spark.apache.org/docs/1.1.1/api/python/'
-p1
-aS'Spark 1.1.0 Python API Docs'
-p2
-aI0
-aV<?xml version="1.0" encoding="iso-8859-1"?>\u000a<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Frameset//EN"\u000a          "DTD/xhtml1-frameset.dtd">\u000a<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">\u000a<head>\u000a  <title> Spark 1.1.0 Python API Docs </title>\u000a</head>\u000a<frameset cols="20%,80%">\u000a  <frameset rows="30%,70%">\u000a    <frame src="toc.html" name="moduleListFrame"\u000a           id="moduleListFrame" />\u000a    <frame src="toc-everything.html" name="moduleFrame"\u000a           id="moduleFrame" />\u000a  </frameset>\u000a  <frame src="pyspark-module.html" name="mainFrame" id="mainFrame" />\u000a</frameset>\u000a</html>\u000a
-p3
-a.
