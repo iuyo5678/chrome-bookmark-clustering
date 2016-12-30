@@ -1,12 +1,7 @@
-
 # coding: utf-8
-
-# In[1]:
-
 #!/usr/bin/env python
 
-
-# Time-stamp: <2016-12-21 12:03:37 Wednesday by wls81>
+# Time-stamp: <2016-12-29 18:36:00 Thursday by wls81>
 import sys
 import re
 import pickle
@@ -26,7 +21,7 @@ from bs4 import BeautifulSoup as bf
 
 headers = {'user-agent': 'Mozilla/5.0 (X11; Fedora; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.87 Safari/537.36'}
 cluster_result = {}
-timeout = 40
+timeout = 10
 max_retry = 3
 
 def get_bookmarks_from_export(bookmark_content):
@@ -64,7 +59,7 @@ def download_page_content(url, proxies=None):
     try_numner = 1
     status_code = 404
     print url
-    print "开始爬取网页：{0}".format(url)
+    print "开始爬取网页：{0}".format(url.encode("utf-8"))
     while try_numner <= max_retry:
         try:
             if not proxies:
@@ -86,25 +81,38 @@ def download_page_content(url, proxies=None):
     else:
         return None
 
-def collect_page_content(bookmarks, data_path):
+def collect_page_content(bookmarks, data_path, args):
     """
     """
+    proxies = {}
+    if args.proxy:
+        proxies["http"] = args.proxy
+        proxies["https"] = args.proxy
     for i , bookmark in enumerate(bookmarks):
         file_name_md5 = string_md5("*****".join(bookmark[0:2]).encode('utf-8'))
         file_path = data_path +'/' + file_name_md5
         # 如果已经下载了页面，就直接加载结果
         if os.path.isfile(file_path):
+            load_success = True
             temp_file = open(file_path)
-            bookmarks[i] = pickle.load(temp_file)
-            continue
+            try:
+                bookmarks[i] = pickle.load(temp_file)
+            except EOFError:
+                load_success = False
+            if args.advance and bookmarks[i][2] != 0:
+                load_success = False
+            if load_success:
+                continue
+            
         # chrome 内部url和本地文件直接聚一类，不参与计算了
         if bookmark[0].startswith("chrome:") or bookmark[0].startswith("file:"):
             bookmarks[i][2] = -1
             temp_file = open(file_path, 'wb')
             ss = pickle.dump(bookmarks[i], temp_file)
             continue
+        
         # 没有下载的，http的下载页面，并且保存结果
-        page_content = download_page_content(bookmark[0])
+        page_content = download_page_content(bookmark[0], proxies)
         if page_content:
             bookmarks[i][2] = 0
             bookmarks[i].append(page_content)
@@ -309,6 +317,7 @@ def main(args):
     data_path = os.path.dirname(os.path.abspath(__file__)) + '/data'
     if not os.path.exists(data_path):
         os.mkdir(data_path)
+        
     if args.file:
         bookmarks = get_bookmarks_from_export(bookmark_content)
     else:
@@ -316,7 +325,7 @@ def main(args):
     print "共计获得书签：%d 条" % len(bookmarks)
 
     # 下载或是从保存记录中加载所有的页面数据
-    bookmarks_result = collect_page_content(bookmarks, data_path)
+    bookmarks_result = collect_page_content(bookmarks, data_path, args)
     print  "抽取页面的内容"
 
     bookmarks_result = extract_text(bookmarks_result)
@@ -343,12 +352,14 @@ def main(args):
 
 parser = argparse.ArgumentParser(description='chrome 书签自动分类工具')
 parser.add_argument("-k", "--kvalue", type=int, help="聚簇的个数，将书签分为多少个簇")
-parser.add_argument('-m', "--method", choices=['hierarchical', 'kmeans'], required=True,  
+parser.add_argument('-m', "--method", choices=['hierarchical', 'kmeans'], default="hierarchical",  
                     help='选择聚类方法只有两种可选，kmeans和hierarchical')
 parser.add_argument("-f", "--file", required=False,
                     help="书签文件的路径")
 parser.add_argument("-d", "--debug",action='store_false', default=False, help="开启调试模式")
 parser.add_argument("-p", "--proxy",help="页面抓取时使用代理")
+parser.add_argument("-a", "--advance",action='store_false', default=False, help="开启此选项，加载历史文件时候发现页面没有抓取成功，会重新抓取")
 
 args = parser.parse_args()
+#print args
 main(args)
