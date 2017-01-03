@@ -1,7 +1,7 @@
 # coding: utf-8
 #!/usr/bin/env python
 
-# Time-stamp: <2016-12-29 18:36:00 Thursday by wls81>
+# Time-stamp: <2017-01-03 18:51:03 Tuesday by wls81>
 import sys
 import re
 import pickle
@@ -356,9 +356,9 @@ parser.add_argument('-m', "--method", choices=['hierarchical', 'kmeans'], defaul
                     help='选择聚类方法只有两种可选，kmeans和hierarchical')
 parser.add_argument("-f", "--file", required=False,
                     help="书签文件的路径")
-parser.add_argument("-d", "--debug",action='store_false', default=False, help="开启调试模式")
+parser.add_argument("-d", "--debug",action='store_true', default=False, help="开启调试模式")
 parser.add_argument("-p", "--proxy",help="页面抓取时使用代理")
-parser.add_argument("-a", "--advance",action='store_false', default=False, help="开启此选项，加载历史文件时候发现页面没有抓取成功，会重新抓取")
+parser.add_argument("-a", "--advance",action='store_true', default=False, help="开启此选项，加载历史文件时候发现页面没有抓取成功，会重新抓取")
 
 args = parser.parse_args()
 #print args
