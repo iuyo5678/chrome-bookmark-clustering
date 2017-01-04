@@ -1,7 +1,7 @@
 # coding: utf-8
 #!/usr/bin/env python
 
-# Time-stamp: <2017-01-04 17:47:52 Wednesday by wls81>
+# Time-stamp: <2017-01-04 19:17:47 Wednesday by wls81>
 import sys
 import re
 import pickle
@@ -9,6 +9,7 @@ import os
 import hashlib
 import argparse
 import time
+import json
 from collections import defaultdict
 
 import requests
@@ -34,6 +35,7 @@ def get_bookmarks_from_export(bookmark_content):
     raw_result = []
     for item in bookmarks:
         bm_info = list(item)
+        bm_info.append("")
         bm_info.append(0)
         raw_result.append(bm_info)
     return raw_result
@@ -41,7 +43,6 @@ def get_bookmarks_from_export(bookmark_content):
 def get_bookmarks_from_folder(bookmark_content):
     """
     """
-    import json
     json_result =  json.loads(bookmark_content)
     bookmark_info = apart_dict(json_result, "type", 'url')
     raw_result = []
@@ -49,6 +50,7 @@ def get_bookmarks_from_folder(bookmark_content):
         bm_info = list()
         bm_info.append(item['url'])
         bm_info.append(item['name'])
+        bm_info.append(item)
         bm_info.append(0)
         raw_result.append(bm_info)
     return raw_result
@@ -73,14 +75,14 @@ def collect_page_content(bookmarks, data_path, args):
                 bookmarks[i] = pickle.load(temp_file)
             except EOFError:
                 load_success = False
-            if args.advance and bookmarks[i][2] != 0:
+            if args.advance and bookmarks[i][3] != 0:
                 load_success = False
             if load_success:
                 continue
             
         # chrome 内部url和本地文件直接聚一类，不参与计算了
         if bookmark[0].startswith("chrome:") or bookmark[0].startswith("file:"):
-            bookmarks[i][2] = -1
+            bookmarks[i][3] = -1
             temp_file = open(file_path, 'wb')
             ss = pickle.dump(bookmarks[i], temp_file)
             continue
@@ -101,10 +103,10 @@ def collect_page_content(bookmarks, data_path, args):
         item = out_queue.get()
         serial_num = item[0]
         if item[1]:
-            bookmarks[serial_num][2] = 0
+            bookmarks[serial_num][3] = 0
             bookmarks[serial_num].append(item[1])
         else:
-            bookmarks[serial_num][2] = -2
+            bookmarks[serial_num][3] = -2
             # 结果保存到文件夹中
         file_name_md5 = string_md5("*****".join(bookmarks[serial_num][0:2]).encode('utf-8'))
         file_path = data_path +'/' + file_name_md5
@@ -116,8 +118,8 @@ def add_tags(bookmarks, topK=20):
     """
     """
     for i , bookmark in enumerate(bookmarks):
-        if bookmark[2] == 0:
-            content = bookmark[4]
+        if bookmark[3] == 0:
+            content = bookmark[5]
             bookmark_tag_word = jieba.analyse.textrank(content, topK, withWeight=False, allowPOS=('ns', 'n', 'vn', 'v'))
             if len(bookmark_tag_word) == 0:
                 bookmark_tag_word = jieba.analyse.extract_tags(content, topK)
@@ -129,8 +131,8 @@ def extract_text(bookmarks):
     """
     """
     for i , bookmark in enumerate(bookmarks):
-        if bookmark[2] == 0:
-            bsoup = bf(bookmark[3], "html5lib")
+        if bookmark[3] == 0:
+            bsoup = bf(bookmark[4], "html5lib")
             # 过滤掉页面中的js和css
             for script in bsoup(["script", "style"]):
                 script.extract()
@@ -153,9 +155,9 @@ def cut_word(bookmarks_result):
     map_dict = dict()
     index = 0
     for i, bookmark in enumerate(bookmarks_result):
-        if bookmark[2] >= 0:
+        if bookmark[3] >= 0:
             map_dict[index] = i
-            seg_list = jieba.cut(bookmark[4], cut_all=True) 
+            seg_list = jieba.cut(bookmark[5], cut_all=True) 
             bookmark_corpus.append("  ".join(filter(unvlaid_data, seg_list)))
             index += 1
     print "抽取到有效文章%d" % len(bookmark_corpus)
@@ -227,14 +229,15 @@ def calu_cluster_name(cluster_content, key, topK=3):
 def write_mark(bookmarks_result,clustering_result, map_dict):
     for index, label in enumerate(clustering_result):
         bookmark_index = map_dict[index]
-        bookmarks_result[bookmark_index][2] = label
+        bookmarks_result[bookmark_index][3] = label
         result = defaultdict(list)
         cluster_content = defaultdict(list)
         for item in bookmarks_result:
-            key = str(item[2])
+            key = str(item[3])
             result[key].append(item[1])
-            if int(item[2]) >= 0:
-                cluster_content[key].append(item[4].lower())
+            if int(item[3]) >= 0:
+                cluster_content[key].append(item[5].lower())
+    
     return result, cluster_content
 
 # 输出结果
@@ -248,6 +251,39 @@ def print_result(result, cluster_content):
         print ""
 
 
+# 将聚簇结果标记写入数据
+def save_cluster_result(bookmark_content, bookmarks_result,clustering_result, map_dict):
+    json_result =  json.loads(bookmark_content)
+    del json_result['roots']['synced']
+    json_result['roots']['other']['children'] = []
+    json_result['roots']['other']["name"] = "Auto classification"
+    for index, label in enumerate(clustering_result):
+        bookmark_index = map_dict[index]
+        bookmarks_result[bookmark_index][3] = label
+        result = defaultdict(list)
+        cluster_content = defaultdict(list)
+        for item in bookmarks_result:
+            key = str(item[3])
+            result[key].append(item[2])
+            if int(item[3]) >= 0:
+                cluster_content[key].append(item[5].lower())
+
+    for k,v in result.iteritems(): 
+        cluster = {
+            "date_added": "13116431203417211",
+            "date_modified": "13116941624646221",
+            "id": "35",
+            "name": calu_cluster_name(cluster_content, k),
+            "sync_transaction_version": "79",
+            "type": "folder",
+            "children": []
+        }
+        for value in v:
+            cluster['children'].append(value)
+        json_result['roots']['other']['children'].append(cluster)
+    with open('data.json', 'w') as f:
+        json.dump(json_result, f)
+        
 def apart_dict(raw_content, key, value):
     """
     """
@@ -327,14 +363,18 @@ def main(args):
     print "数据准备结束"
 
     map_dict, bookmark_corpus = cut_word(bookmarks_result)
+    
     feature_matrix = extract_features(bookmark_corpus, args.debug)
+    
     if args.method == "kmeans":
         clustering_result = kmeans_clustering(feature_matrix, args.kvalue, args.debug)
     else:
         clustering_result = hierarchical_clustering(feature_matrix, args.kvalue, args.debug)
-    result, cluster_content = write_mark(bookmarks_result,clustering_result, map_dict)
-    print_result(result, cluster_content)
-
+    if args.debug:
+        result, cluster_content = write_mark(bookmarks_result, clustering_result, map_dict)
+        print_result(result, cluster_content)
+    else:
+        save_cluster_result(bookmark_content, bookmarks_result, clustering_result, map_dict)
 
 parser = argparse.ArgumentParser(description='chrome 书签自动分类工具')
 parser.add_argument("-k", "--kvalue", type=int, help="聚簇的个数，将书签分为多少个簇")
