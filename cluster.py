@@ -1,13 +1,14 @@
 # coding: utf-8
 #!/usr/bin/env python
 
-# Time-stamp: <2017-01-03 18:51:03 Tuesday by wls81>
+# Time-stamp: <2017-01-04 17:47:52 Wednesday by wls81>
 import sys
 import re
 import pickle
 import os 
 import hashlib
 import argparse
+import time
 from collections import defaultdict
 
 import requests
@@ -19,10 +20,11 @@ import getpass
 
 from bs4 import BeautifulSoup as bf
 
-headers = {'user-agent': 'Mozilla/5.0 (X11; Fedora; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.87 Safari/537.36'}
+import threading
+from Queue import Queue
+from parallel_download import ParallelDownload
+
 cluster_result = {}
-timeout = 10
-max_retry = 3
 
 def get_bookmarks_from_export(bookmark_content):
     """
@@ -51,36 +53,6 @@ def get_bookmarks_from_folder(bookmark_content):
         raw_result.append(bm_info)
     return raw_result
 
-
-    
-def download_page_content(url, proxies=None):
-    """
-    """
-    try_numner = 1
-    status_code = 404
-    print url
-    print "开始爬取网页：{0}".format(url.encode("utf-8"))
-    while try_numner <= max_retry:
-        try:
-            if not proxies:
-                response = requests.get(url, timeout=timeout, headers=headers)
-            else:
-                response = requests.get(url, proxies=proxies, timeout=timeout, headers=headers)
-            status_code = response.status_code
-        except:
-            print "第 %d 次抓取失败" % try_numner
-        if status_code != 200:
-            try_numner += 1
-        else:
-            break
-    if status_code == 200:
-        # 判断页面的的编码，有些不标准的页面，request解码bug
-        if response.encoding == "ISO-8859-1":
-            response.encoding = response.apparent_encoding
-        return response.text
-    else:
-        return None
-
 def collect_page_content(bookmarks, data_path, args):
     """
     """
@@ -88,6 +60,8 @@ def collect_page_content(bookmarks, data_path, args):
     if args.proxy:
         proxies["http"] = args.proxy
         proxies["https"] = args.proxy
+    in_queue = Queue()
+
     for i , bookmark in enumerate(bookmarks):
         file_name_md5 = string_md5("*****".join(bookmark[0:2]).encode('utf-8'))
         file_path = data_path +'/' + file_name_md5
@@ -110,18 +84,32 @@ def collect_page_content(bookmarks, data_path, args):
             temp_file = open(file_path, 'wb')
             ss = pickle.dump(bookmarks[i], temp_file)
             continue
-        
-        # 没有下载的，http的下载页面，并且保存结果
-        page_content = download_page_content(bookmark[0], proxies)
-        if page_content:
-            bookmarks[i][2] = 0
-            bookmarks[i].append(page_content)
+
+        in_queue.put((i, bookmark))
+
+    out_queue = Queue()
+    for i in range(in_queue.qsize()/10 + 1):
+        downloader = ParallelDownload("downloader" + str(i), in_queue, out_queue)
+        downloader.daemon = True
+        downloader.start()
+
+    while threading.activeCount() > 1:
+        print "There are currently {0} threads being fetched".format(threading.activeCount()-1)
+        time.sleep(1)
+
+    while out_queue.qsize() > 0:
+        item = out_queue.get()
+        serial_num = item[0]
+        if item[1]:
+            bookmarks[serial_num][2] = 0
+            bookmarks[serial_num].append(item[1])
         else:
-            bookmarks[i][2] = -2
+            bookmarks[serial_num][2] = -2
             # 结果保存到文件夹中
+        file_name_md5 = string_md5("*****".join(bookmarks[serial_num][0:2]).encode('utf-8'))
+        file_path = data_path +'/' + file_name_md5
         temp_file = open(file_path, 'wb')
-        ss = pickle.dump(bookmarks[i], temp_file)
-        
+        pickle.dump(bookmarks[serial_num], temp_file)
     return bookmarks
 
 def add_tags(bookmarks, topK=20):
@@ -130,11 +118,9 @@ def add_tags(bookmarks, topK=20):
     for i , bookmark in enumerate(bookmarks):
         if bookmark[2] == 0:
             content = bookmark[4]
-            
             bookmark_tag_word = jieba.analyse.textrank(content, topK, withWeight=False, allowPOS=('ns', 'n', 'vn', 'v'))
             if len(bookmark_tag_word) == 0:
                 bookmark_tag_word = jieba.analyse.extract_tags(content, topK)
-            
             bookmarks[i].append(bookmark_tag_word)
 
     return bookmarks
